@@ -17,7 +17,7 @@
 static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk, unsigned cpu)
 {
 	if(cpu_tlbstate[cpu].state == TLBSTATE_OK)
-		cpu_tlbstate[cpu].state = TLBSTATE_LAZY;	
+		cpu_tlbstate[cpu].state = TLBSTATE_LAZY;
 }
 #else
 static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk, unsigned cpu)
@@ -41,7 +41,7 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next, str
 #endif
 		set_bit(cpu, &next->cpu_vm_mask);
 		/* Re-load page tables */
-		asm volatile("movl %0,%%cr3": :"r" (__pa(next->pgd)));
+		asm volatile("movl %0,%%cr3": :"r" (__pa(next->pgd)));//将next->pgd，即下一个进程的页面目录起始地址，通过__pa()转换成物理地址，并将其写入CR3寄存器里面。
 	}
 #ifdef CONFIG_SMP
 	else {
@@ -49,7 +49,7 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next, str
 		if(cpu_tlbstate[cpu].active_mm != next)
 			BUG();
 		if(!test_and_set_bit(cpu, &next->cpu_vm_mask)) {
-			/* We were in lazy tlb mode and leave_mm disabled 
+			/* We were in lazy tlb mode and leave_mm disabled
 			 * tlb flush IPI delivery. We must flush our tlb.
 			 */
 			local_flush_tlb();

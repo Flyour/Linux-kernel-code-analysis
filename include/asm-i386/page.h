@@ -24,7 +24,7 @@
  *	On older X86 processors its not a win to use MMX here it seems.
  *	Maybe the K6-III ?
  */
- 
+
 #define clear_page(page)	memset((void *)(page), 0, PAGE_SIZE)
 #define copy_page(to,from)	memcpy((void *)(to), (void *)(from), PAGE_SIZE)
 
@@ -72,13 +72,19 @@ typedef struct { unsigned long pgprot; } pgprot_t;
  *
  * A __PAGE_OFFSET of 0xC0000000 means that the kernel has
  * a virtual address space of one gigabyte, which limits the
- * amount of physical memory you can use to about 950MB. 
+ * amount of physical memory you can use to about 950MB.
  *
  * If you want more physical memory than this then see the CONFIG_HIGHMEM4G
  * and CONFIG_HIGHMEM64G options in the kernel configuration.
  */
 
 #define __PAGE_OFFSET		(0xC0000000)
+/*
+ * 32位地址，共有4G的虚存空间，linux内核将4G字节的空间分成两部分，将最高的1G字节（从0xC0000000 至 0xFFFFFFFF ）用与内核本身，称为‘系统空间’，
+ * 而较低的3G字节（从0x0 至 0xBFFFFFFF）用作各个进程的‘用户空间’。
+ * 虚存空间中最高的1G，在物理内存中却总是从最低的地址（0）开始，所以对于内核来说，‘系统空间’的虚存地址和物理地址有有一定的位移量。
+ * 因此定义了__PAGE_OFFSET 来作为偏移量。
+ */
 
 #ifndef __ASSEMBLY__
 
@@ -116,6 +122,10 @@ extern __inline__ int get_order(unsigned long size)
 #define __va(x)			((void *)((unsigned long)(x)+PAGE_OFFSET))
 #define virt_to_page(kaddr)	(mem_map + (__pa(kaddr) >> PAGE_SHIFT))
 #define VALID_PAGE(page)	((page - mem_map) < max_mapnr)
+/*
+ * 对于‘系统空间’而言，给定一个虚存地址x,这对应的物理地址__pa (physics address)为：x-PAGE_OFFSET
+ * 给定一个物理地址x，则对应的虚拟地址为： x+PAGE_OFFSET
+ */
 
 
 #endif /* __KERNEL__ */

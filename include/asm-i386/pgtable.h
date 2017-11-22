@@ -109,13 +109,23 @@ extern unsigned long empty_zero_page[1024];
 # include <asm/pgtable-2level.h>
 #endif
 #endif
+/* 这是一段条件编译代码，CONFIG_X86_PAE实在系统配置(config)时，进行定义的变量。
+ * 如果CPU是Pentium Pro以上时，并且选择采用36为地址，则在编译时选择项CONFIG_X86_PAE为1,否则为0.
+ * 根据CONFIG_X86_PAE的值，编译时会从pgtable-3level.h 和 pgtable-2level.h 中二选一，根据名称就可以知道，
+ * pagatble 就是pagetable ，分别对应三层页式内存管理和二层页式内存管理。前者用于36位地址的三层映射，
+ * 后者用于32位地址的二层映射。
+ */
 
 #define __beep() asm("movb $0x3,%al; outb %al,$0x61")
 
-#define PMD_SIZE	(1UL << PMD_SHIFT)
+#define PMD_SIZE	(1UL << PMD_SHIFT)// 1UL 代表无符号长整形1,这里使用了左移运算，左移**位。
 #define PMD_MASK	(~(PMD_SIZE-1))
-#define PGDIR_SIZE	(1UL << PGDIR_SHIFT)
+#define PGDIR_SIZE	(1UL << PGDIR_SHIFT)// 同PMD_SIZE一样。
 #define PGDIR_MASK	(~(PGDIR_SIZE-1))
+/*
+ * PGDIR_SIZE 用来表示PGD表中，一个表型对应了多大的物理空间。一个PGD表型对应n个PMD，一个PMD表项又对应m个PT，一个PT表项对应s KB的内存，
+ * 所以，一个PGD表项对应的内存空间为 n*m*s,现在我们可以理解为什么有左移PGDIR_SHIFT位了。
+ */
 
 #define USER_PTRS_PER_PGD	(TASK_SIZE/PGDIR_SIZE)
 #define FIRST_USER_PGD_NR	0
@@ -147,7 +157,7 @@ extern unsigned long empty_zero_page[1024];
  * of the Pentium details, but assuming intel did the straightforward
  * thing, this bit set in the page directory entry just means that
  * the page directory entry points directly to a 4MB-aligned block of
- * memory. 
+ * memory.
  */
 #define _PAGE_BIT_PRESENT	0
 #define _PAGE_BIT_RW		1

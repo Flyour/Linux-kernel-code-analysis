@@ -7,6 +7,13 @@
 
 #define PGDIR_SHIFT	22
 #define PTRS_PER_PGD	1024
+/*
+ * PGDIR_SHIFT 表示线性地址中PGD下标位段的起始位置，即是bit22位(第23位)，由于PGD是线性地址中的最高位段，
+ * 那么就可以的到PGD位段是从23位到32位 。 一共是10位.
+ * PTRS_PER_PGD 即是pointers_per_pgd，代表每一个PGD表中指针的个数为1024.
+ * 显然，1024与线性地址中PGD位段的长度(10位)是相符的。
+ */
+
 
 /*
  * the i386 is two-level, so we don't really have any
@@ -14,6 +21,11 @@
  */
 #define PMD_SHIFT	22
 #define PTRS_PER_PMD	1
+/*
+ * PMD_SHIFT 定义为22,就意味着，与PGD的起始位置相同，就是说，线性地址中PMD的位段长度为0.
+ * 而PTRS_PER_PMD为1,则表示每个PMD表中只有一个表项，2^0=1.
+ */
+
 
 #define PTRS_PER_PTE	1024
 
