@@ -51,7 +51,7 @@ extern inline int pgd_present(pgd_t pgd)	{ return 1; }
  * within a page table are directly modified.  Thus, the following
  * hook is made available.
  */
-#define set_pte(pteptr, pteval) (*(pteptr) = pteval)
+#define set_pte(pteptr, pteval) (*(pteptr) = pteval) /* set_pte 用来设置页面表项，如果p标志位为1,说明页面不在内存中，发生缺页异常 */
 /*
  * (pmds are folded into pgds so this doesnt get actually called,
  * but the define is needed for a generic inline function.)

@@ -41,7 +41,7 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next, str
 #endif
 		set_bit(cpu, &next->cpu_vm_mask);
 		/* Re-load page tables */
-		asm volatile("movl %0,%%cr3": :"r" (__pa(next->pgd)));//将next->pgd，即下一个进程的页面目录起始地址，通过__pa()转换成物理地址，并将其写入CR3寄存器里面。
+		asm volatile("movl %0,%%cr3": :"r" (__pa(next->pgd)));//将next->pgd，即下一个进程的页面目录起始地址(虚拟地址），通过__pa()转换成物理地址，并将其写入CR3寄存器里面。
 	}
 #ifdef CONFIG_SMP
 	else {

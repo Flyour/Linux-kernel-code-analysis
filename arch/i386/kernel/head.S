@@ -446,14 +446,22 @@ ALIGN
  *
  * NOTE! Make sure the gdt descriptor in head.S matches this if you
  * change anything.
+ * 注意，段式映射中所有的进程使用同一个GDT，并且cs,ds等基地址全为0
  */
 ENTRY(gdt_table)
 	.quad 0x0000000000000000	/* NULL descriptor */
 	.quad 0x0000000000000000	/* not used */
+
 	.quad 0x00cf9a000000ffff	/* 0x10 kernel 4GB code at 0x00000000 */
 	.quad 0x00cf92000000ffff	/* 0x18 kernel 4GB data at 0x00000000 */
 	.quad 0x00cffa000000ffff	/* 0x23 user   4GB code at 0x00000000 */
 	.quad 0x00cff2000000ffff	/* 0x2b user   4GB data at 0x00000000 */
+    /*
+     *  以上四项，下标从2～4,对应segment中定义的四种段寄存器，把其对应的数值转换为二进制，对应段描述项的定义，可知
+     *  每个段都是从0地址开始的整个4GB虚存空间，序地址到线性地址的映射保持原值不变,因此，讨论或理解linux的内核的页式映射时，可以直接将线性地址当作
+     *  虚拟地址，二者完全一致
+     */
+
 	.quad 0x0000000000000000	/* not used */
 	.quad 0x0000000000000000	/* not used */
 	/*
@@ -465,7 +473,7 @@ ENTRY(gdt_table)
 	.quad 0x00009a0000000000	/* 0x50 APM CS 16 code (16 bit) */
 	.quad 0x0040920000000000	/* 0x58 APM DS    data */
 	.fill NR_CPUS*4,8,0		/* space for TSS's and LDT's */
-		
+
 /*
  * This is to aid debugging, the various locking macros will be putting
  * code fragments here.  When an oops occurs we'd rather know that it's

@@ -36,17 +36,20 @@
 /*
  * These are used to make use of C type-checking..
  */
-#if CONFIG_X86_PAE
+#if CONFIG_X86_PAE //对应的36位页内存管理
 typedef struct { unsigned long pte_low, pte_high; } pte_t;
 typedef struct { unsigned long long pmd; } pmd_t;
 typedef struct { unsigned long long pgd; } pgd_t;
 #define pte_val(x)	((x).pte_low | ((unsigned long long)(x).pte_high << 32))
-#else
+#else //对应32位页内存管理
 typedef struct { unsigned long pte_low; } pte_t;
 typedef struct { unsigned long pmd; } pmd_t;
 typedef struct { unsigned long pgd; } pgd_t;
 #define pte_val(x)	((x).pte_low)
 #endif
+/*
+ * 两种定义的区别在于36位中的pmd,pgd定义为long long 型整数，之所以不全部定义为long 型，是为了gcc 在编译时加以更严格的类型检查
+ */
 #define PTE_MASK	PAGE_MASK
 
 typedef struct { unsigned long pgprot; } pgprot_t;
@@ -59,6 +62,9 @@ typedef struct { unsigned long pgprot; } pgprot_t;
 #define __pmd(x) ((pmd_t) { (x) } )
 #define __pgd(x) ((pgd_t) { (x) } )
 #define __pgprot(x)	((pgprot_t) { (x) } )
+/*
+ * 注意，以上的define 定义，实际上是为我们的页目录定义了一些方法，为结构对象定义方法，这里吸收了面向对象的程序设计手法
+ */
 
 #endif /* !__ASSEMBLY__ */
 

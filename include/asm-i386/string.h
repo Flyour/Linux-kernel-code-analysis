@@ -200,15 +200,14 @@ static inline void * __memcpy(void * to, const void * from, size_t n)
 {
 int d0, d1, d2;
 __asm__ __volatile__(
-	"rep ; movsl\n\t"
-	"testb $2,%b4\n\t"
-	"je 1f\n\t"
+	"rep ; movsl\n\t" //rep命令，根据cx进行重复下一条命令
+	"testb $2,%b4\n\t" //这里的%b4代表访问操作数的地字中的低字节,	"je 1f\n\t"
 	"movsw\n"
-	"1:\ttestb $1,%b4\n\t"
+	"1:\ttestb $1,%b4\n\t"//test是and的测试命令，根据结果设置zF,cf的标志寄存器
 	"je 2f\n\t"
 	"movsb\n"
-	"2:"
-	: "=&c" (d0), "=&D" (d1), "=&S" (d2)
+	"2:" //以上都是指令部，指令之间要用 “;", "\n", "\n\t" 来分隔
+	: "=&c" (d0), "=&D" (d1), "=&S" (d2)// c,D,S分别代表ecx,edi,esi寄存器
 	:"0" (n/4), "q" (n),"1" ((long) to),"2" ((long) from)
 	: "memory");
 return (to);
@@ -279,7 +278,7 @@ __asm__ __volatile__( \
 		default: COMMON("\n\tmovsw\n\tmovsb"); return to;
 	}
 }
-  
+
 #undef COMMON
 }
 
@@ -324,7 +323,7 @@ extern __inline__ void *__memcpy3d(void *to, const void *from, size_t len)
 /*
  *	No 3D Now!
  */
- 
+
 #define memcpy(t, f, n) \
 (__builtin_constant_p(n) ? \
  __constant_memcpy((t),(f),(n)) : \
@@ -427,7 +426,7 @@ __asm__ __volatile__(
 	: "=&c" (d0), "=&D" (d1)
 	:"a" (c), "q" (count), "0" (count/4), "1" ((long) s)
 	:"memory");
-return (s);	
+return (s);
 }
 
 /* Added by Gertjan van Wingerde to make minix and sysv module work */
@@ -521,7 +520,7 @@ __asm__  __volatile__( \
 		default: COMMON("\n\tstosw\n\tstosb"); return s;
 	}
 }
-  
+
 #undef COMMON
 }
 

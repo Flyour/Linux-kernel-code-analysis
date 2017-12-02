@@ -169,17 +169,17 @@ extern unsigned long empty_zero_page[1024];
 #define _PAGE_BIT_PSE		7	/* 4 MB (or 2MB) page, Pentium+, if present.. */
 #define _PAGE_BIT_GLOBAL	8	/* Global TLB entry PPro+ */
 
-#define _PAGE_PRESENT	0x001
-#define _PAGE_RW	0x002
-#define _PAGE_USER	0x004
-#define _PAGE_PWT	0x008
-#define _PAGE_PCD	0x010
-#define _PAGE_ACCESSED	0x020
-#define _PAGE_DIRTY	0x040
-#define _PAGE_PSE	0x080	/* 4 MB (or 2MB) page, Pentium+, if present.. */
-#define _PAGE_GLOBAL	0x100	/* Global TLB entry PPro+ */
+#define _PAGE_PRESENT	0x001 /* 为0时表示相应的页面不在内存中 */
+#define _PAGE_RW	0x002 /* 只读或可写 */
+#define _PAGE_USER	0x004 /* 0时表示系统权限，1时表示用户权限 */
+#define _PAGE_PWT	0x008 /* write-through ,用于缓冲存储器 */
+#define _PAGE_PCD	0x010 /* 关闭（不使用）缓冲存储器 */
+#define _PAGE_ACCESSED	0x020 /* accessed，已被访问过 */
+#define _PAGE_DIRTY	0x040 /*表名该页面已被写过，脏了*/
+#define _PAGE_PSE	0x080	/* 4 MB (or 2MB) page, Pentium+, if present.. 页面大小，0表示4K,*/
+#define _PAGE_GLOBAL	0x100	/* Global TLB entry PPro+ 全局性页面*/
 
-#define _PAGE_PROTNONE	0x080	/* If not present */
+#define _PAGE_PROTNONE	0x080	/* If not present ,对应与页面表项中的bit7,保留不用*/
 
 #define _PAGE_TABLE	(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | _PAGE_ACCESSED | _PAGE_DIRTY)
 #define _KERNPG_TABLE	(_PAGE_PRESENT | _PAGE_RW | _PAGE_ACCESSED | _PAGE_DIRTY)
