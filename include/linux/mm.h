@@ -115,7 +115,7 @@ extern pgprot_t protection_map[16];
 /*
  * These are the virtual MM functions - opening of an area, closing and
  * unmapping it (needed to keep files on disk up-to-date etc), pointer
- * to the functions called when a no-page or a wp-page exception occurs. 
+ * to the functions called when a no-page or a wp-page exception occurs.
  */
 struct vm_operations_struct {
 	void (*open)(struct vm_area_struct * area);
@@ -129,10 +129,12 @@ struct vm_operations_struct {
  * beneficial on 32-bit processors.
  *
  * The first line is data used in page cache lookup, the second line
- * is used for linear searches (eg. clock algorithm scans). 
+ * is used for linear searches (eg. clock algorithm scans).
  */
+/*
+ * 每个page数据结构代表着一个物理页面，整个page数据结构的数组代表全部的物理页面 */
 typedef struct page {
-	struct list_head list;
+	struct list_head list; /* list_head 一个双向链表结构 */
 	struct address_space *mapping;
 	unsigned long index;
 	struct page *next_hash;
@@ -405,7 +407,7 @@ extern int check_pgt_cache(void);
 
 extern void free_area_init(unsigned long * zones_size);
 extern void free_area_init_node(int nid, pg_data_t *pgdat, struct page *pmap,
-	unsigned long * zones_size, unsigned long zone_start_paddr, 
+	unsigned long * zones_size, unsigned long zone_start_paddr,
 	unsigned long *zholes_size);
 extern void mem_init(void);
 extern void show_mem(void);

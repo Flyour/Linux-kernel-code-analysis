@@ -13,9 +13,9 @@
  */
 
 #define MAX_ORDER 10
-
+/* 空闲区间队列 */
 typedef struct free_area_struct {
-	struct list_head	free_list;
+	struct list_head	free_list; /* list_head 是一个通用的用来维持双向链队列的机构，内核中需要用双向链队的地方都使用这个数据结构 */
 	unsigned int		*map;
 } free_area_t;
 
@@ -23,10 +23,11 @@ struct pglist_data;
 
 typedef struct zone_struct {
 	/*
+     * 每个管理分区有一个zone_strucg 结构
 	 * Commonly accessed fields:
 	 */
 	spinlock_t		lock;
-	unsigned long		offset;
+	unsigned long		offset; /* offset 表示该分区在mem_map 中的起始页面号 */
 	unsigned long		free_pages;
 	unsigned long		inactive_clean_pages;
 	unsigned long		inactive_dirty_pages;
@@ -36,7 +37,7 @@ typedef struct zone_struct {
 	 * free areas of different sizes
 	 */
 	struct list_head	inactive_clean_list;
-	free_area_t		free_area[MAX_ORDER];
+	free_area_t		free_area[MAX_ORDER]; /* 定义了一组空闲区间队列,用一个队列来保持一些离散（连续长度为MAX_ORDER)的物理页面，‘一组’，代表着每一种大小的连续块，都有一个队列进行记录 */
 
 	/*
 	 * rarely used fields:
@@ -46,7 +47,7 @@ typedef struct zone_struct {
 	/*
 	 * Discontig memory support fields.
 	 */
-	struct pglist_data	*zone_pgdat;
+	struct pglist_data	*zone_pgdat; /* 指向该管理区所属存储节点的pglist_data 数据结构 */
 	unsigned long		zone_start_paddr;
 	unsigned long		zone_start_mapnr;
 	struct page		*zone_mem_map;
@@ -70,16 +71,21 @@ typedef struct zone_struct {
  */
 typedef struct zonelist_struct {
 	zone_t * zones [MAX_NR_ZONES+1]; // NULL delimited
+    /*
+     * zones是个指针，各个元素按特定的次序指向具体的页面管理区，表示分配页面是先尝试zones[0]所指的管理分区，如果不能满足，再去尝试zones[1],以此类推
+     * 每一个zonelist_struct 结构体都代表了一种查询顺序
+     */
 	int gfp_mask;
 } zonelist_t;
 
 #define NR_GFPINDEX		0x100
 
 struct bootmem_data;
+/* 对于NUMA结构的系统，每个存储节点都有一个pglist_data 数据结构,所有的pgliist_data 可以通过指针node_next 形成一个单链队列 */
 typedef struct pglist_data {
-	zone_t node_zones[MAX_NR_ZONES];
-	zonelist_t node_zonelists[NR_GFPINDEX];
-	struct page *node_mem_map;
+	zone_t node_zones[MAX_NR_ZONES]; /* 指向该节点的最多3个的页面管理区 */
+	zonelist_t node_zonelists[NR_GFPINDEX]; /* 一个zonelist_struct 的数组，代表了NR_GFPINDEX( 0x100 )种的查询顺序 */
+	struct page *node_mem_map; /* 这个page 型指针执行该节点的apge结构数组 */
 	unsigned long *valid_addr_bitmap;
 	struct bootmem_data *bdata;
 	unsigned long node_start_paddr;

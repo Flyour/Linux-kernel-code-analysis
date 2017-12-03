@@ -124,9 +124,14 @@ extern __inline__ int get_order(unsigned long size)
 #endif /* __ASSEMBLY__ */
 
 #define PAGE_OFFSET		((unsigned long)__PAGE_OFFSET)
-#define __pa(x)			((unsigned long)(x)-PAGE_OFFSET)
-#define __va(x)			((void *)((unsigned long)(x)+PAGE_OFFSET))
+#define __pa(x)			((unsigned long)(x)-PAGE_OFFSET) /* 从虚拟地址减去偏移量，得到物理地址，系统空间虚地址的映射到物理地址的映射是线性映射 */
+#define __va(x)			((void *)((unsigned long)(x)+PAGE_OFFSET)) /* 起始就是上一个宏的逆操作 */
 #define virt_to_page(kaddr)	(mem_map + (__pa(kaddr) >> PAGE_SHIFT))
+/*
+ * 根据虚存地址找到相应的物理页面的page数据结构,mem_map 是一个指针指向一个page数据结构的数组
+ * 初始指针加上偏移的下标，得到所需page数据结构的指针呢。所以该宏返回的也是一各page数据结构的指针呢
+ * 注意，page数据结构在文件include/linux/mm.h中定义
+ */
 #define VALID_PAGE(page)	((page - mem_map) < max_mapnr)
 /*
  * 对于‘系统空间’而言，给定一个虚存地址x,这对应的物理地址__pa (physics address)为：x-PAGE_OFFSET
