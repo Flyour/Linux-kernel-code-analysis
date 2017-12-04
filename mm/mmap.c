@@ -402,7 +402,7 @@ unsigned long get_unmapped_area(unsigned long addr, unsigned long len)
 #include "mmap_avl.c"
 
 /* Look up the first VMA which satisfies  addr < vm_end,  NULL if none. */
-/*  函数功能： 给定一个属于某个进程的虚拟地址，要求找到其所属的区间以及相应的vma_area_struct */
+/*  函数功能： 给定一个属于某个进程的虚拟地址，试图找出结束地址大于给定地址的第一个区间,所以结果不一定就是给定虚拟地址所在的虚存区间 */
 struct vm_area_struct * find_vma(struct mm_struct * mm, unsigned long addr)
 {
 	struct vm_area_struct *vma = NULL;

@@ -103,6 +103,7 @@ extern unsigned long idt;
  *	bit 1 == 0 means read, 1 means write
  *	bit 2 == 0 means kernel, 1 means user-mode
  */
+/*  pt_regs结构指针regs，指向列外发生前夕CPU中个寄存器内容的一份副本，这是由内核的中断响应机制保存下来的现场，而error_code则进一步说明映射失败的原因 */
 asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long error_code)
 {
 	struct task_struct *tsk;
@@ -115,8 +116,10 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long error_code)
 	siginfo_t info;
 
 	/* get the address */
+    /* CPU将导致映射失败的线性地址放在控制寄存器CR2中，我们需要用汇编代码来读取这个寄存器，并把值放入变量address中，而且要说明该变量被分配在寄存器中 */
 	__asm__("movl %%cr2,%0":"=r" (address));
 
+    /* current是一个宏操作，用来取得当前进程的task_struct数据结构 */
 	tsk = current;
 
 	/*
@@ -141,14 +144,17 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long error_code)
 	if (in_interrupt() || !mm)
 		goto no_context;
 
+    /* 以下的操作有互斥要求，所以要有对信号量的P/V操作，mm_struct中有所需的信号量mmap_sem。用来down()/up()来进行操作 */
 	down(&mm->mmap_sem);
 
-	vma = find_vma(mm, address);
-	if (!vma)
+	vma = find_vma(mm, address); /* 调用find_vma函数，来搞清楚这个地址是否落在了某个虚存区间 */
+
+	if (!vma) /* 如果vma为NULL，说明没有一个区间的结束地址高于个定的地址，也就是说该地址是在堆栈之上，也就是3G以上的系统空间，越界了 */
 		goto bad_area;
-	if (vma->vm_start <= address)
+
+	if (vma->vm_start <= address) /* 说明该地址正好落在这个区间里,映射肯定已经建立了 */
 		goto good_area;
-	if (!(vma->vm_flags & VM_GROWSDOWN))
+	if (!(vma->vm_flags & VM_GROWSDOWN)) /* 剩下的就是该地址正好落在俩个区间的空洞里 */
 		goto bad_area;
 	if (error_code & 4) {
 		/*
@@ -221,11 +227,16 @@ good_area:
  * Something tried to access memory that isn't in our memory map..
  * Fix it, but check if it's kernel or user first..
  */
+/* 当控制流到达这里是已经不需要互斥了，所以用up()退出临界区  */
 bad_area:
 	up(&mm->mmap_sem);
 
 bad_area_nosemaphore:
 	/* User mode accesses just cause a SIGSEGV */
+    /*
+     * 当error_code的bit2为1时，表示失败是当CPU处于用户模式时发生的,在这里对当前进程的tast_struct 结构内的一些成分进行一些设置后，
+     * 就向该进程发出一个强制的”信号“SIGSEGV
+     */
 	if (error_code & 4) {
 		tsk->thread.cr2 = address;
 		tsk->thread.error_code = error_code;
@@ -243,7 +254,7 @@ bad_area_nosemaphore:
 	 */
 	if (boot_cpu_data.f00f_bug) {
 		unsigned long nr;
-		
+
 		nr = (address - idt) >> 3;
 
 		if (nr == 6) {
