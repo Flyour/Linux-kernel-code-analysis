@@ -25,7 +25,7 @@
  * MAP_SHARED	r: (no) no	r: (yes) yes	r: (no) yes	r: (no) yes
  *		w: (no) no	w: (no) no	w: (yes) yes	w: (no) no
  *		x: (no) no	x: (no) yes	x: (no) yes	x: (yes) yes
- *		
+ *
  * MAP_PRIVATE	r: (no) no	r: (yes) yes	r: (no) yes	r: (no) yes
  *		w: (no) no	w: (no) no	w: (copy) copy	w: (no) no
  *		x: (no) no	x: (no) yes	x: (no) yes	x: (yes) yes
@@ -54,7 +54,7 @@ int vm_enough_memory(long pages)
 	 */
 
 	long free;
-	
+
         /* Sometimes we want to use more memory than we have. */
 	if (sysctl_overcommit_memory)
 	    return 1;
@@ -349,7 +349,7 @@ unsigned long do_mmap_pgoff(struct file * file, unsigned long addr, unsigned lon
 	insert_vm_struct(mm, vma);
 	if (correct_wcount)
 		atomic_inc(&file->f_dentry->d_inode->i_writecount);
-	
+
 	mm->total_vm += len >> PAGE_SHIFT;
 	if (flags & VM_LOCKED) {
 		mm->locked_vm += len >> PAGE_SHIFT;
@@ -402,6 +402,7 @@ unsigned long get_unmapped_area(unsigned long addr, unsigned long len)
 #include "mmap_avl.c"
 
 /* Look up the first VMA which satisfies  addr < vm_end,  NULL if none. */
+/*  函数功能： 给定一个属于某个进程的虚拟地址，要求找到其所属的区间以及相应的vma_area_struct */
 struct vm_area_struct * find_vma(struct mm_struct * mm, unsigned long addr)
 {
 	struct vm_area_struct *vma = NULL;
@@ -410,18 +411,18 @@ struct vm_area_struct * find_vma(struct mm_struct * mm, unsigned long addr)
 		/* Check the cache first. */
 		/* (Cache hit rate is typically around 35%.) */
 		vma = mm->mmap_cache;
-		if (!(vma && vma->vm_end > addr && vma->vm_start <= addr)) {
+		if (!(vma && vma->vm_end > addr && vma->vm_start <= addr)) { // 用来判断虚拟地址addr是否在mm->mmap_cache区间里
 			if (!mm->mmap_avl) {
 				/* Go through the linear list. */
 				vma = mm->mmap;
 				while (vma && vma->vm_end <= addr)
 					vma = vma->vm_next;
 			} else {
-				/* Then go through the AVL tree quickly. */
+				/* Then go through the AVL tree quickly.优先使用avl树进行遍历查找 */
 				struct vm_area_struct * tree = mm->mmap_avl;
 				vma = NULL;
 				for (;;) {
-					if (tree == vm_avl_empty)
+					if (tree == vm_avl_empty) // vm_avl_empty 是上文定义的一个宏，代表空的vm_area_struct指针
 						break;
 					if (tree->vm_end > addr) {
 						vma = tree;
@@ -436,6 +437,9 @@ struct vm_area_struct * find_vma(struct mm_struct * mm, unsigned long addr)
 				mm->mmap_cache = vma;
 		}
 	}
+    /* 如果找到的话，就把mm->mmap_cache指针指向找到的vm_area_struct结构; 如果找不到的话，就要返回NULL，表示该地址所属的区间还未建立，
+     * 需要建立一个新的虚存区间结构，再调用insert_vm_struct() 将其插入到mm_struct 线性队列或AVL树中去
+     */
 	return vma;
 }
 
@@ -536,8 +540,8 @@ struct vm_area_struct * find_extend_vma(struct mm_struct * mm, unsigned long add
  * allocate a new one, and the return indicates whether the old
  * area was reused.
  */
-static struct vm_area_struct * unmap_fixup(struct mm_struct *mm, 
-	struct vm_area_struct *area, unsigned long addr, size_t len, 
+static struct vm_area_struct * unmap_fixup(struct mm_struct *mm,
+	struct vm_area_struct *area, unsigned long addr, size_t len,
 	struct vm_area_struct *extra)
 {
 	struct vm_area_struct *mpnt;
@@ -695,7 +699,7 @@ int do_munmap(struct mm_struct *mm, unsigned long addr, size_t len)
 		return -ENOMEM;
 
 	/*
-	 * We may need one additional vma to fix up the mappings ... 
+	 * We may need one additional vma to fix up the mappings ...
 	 * and this is the last chance for an easy error exit.
 	 */
 	extra = kmem_cache_alloc(vm_area_cachep, SLAB_KERNEL);
@@ -819,17 +823,17 @@ unsigned long do_brk(unsigned long addr, unsigned long len)
 				MAP_FIXED|MAP_PRIVATE) | mm->def_flags;
 
 	flags |= VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC;
-	
+
 
 	/* Can we just expand an old anonymous mapping? */
 	if (addr) {
 		struct vm_area_struct * vma = find_vma(mm, addr-1);
-		if (vma && vma->vm_end == addr && !vma->vm_file && 
+		if (vma && vma->vm_end == addr && !vma->vm_file &&
 		    vma->vm_flags == flags) {
 			vma->vm_end = addr + len;
 			goto out;
 		}
-	}	
+	}
 
 
 	/*
@@ -913,6 +917,7 @@ void exit_mmap(struct mm_struct * mm)
 /* Insert vm structure into process list sorted by address
  * and into the inode's i_mmap ring.  If vm_file is non-NULL
  * then the i_shared_lock must be held here.
+ * 把新建立的虚存区间插入到mm_struct中的单链队列或AVL树中去
  */
 void __insert_vm_struct(struct mm_struct *mm, struct vm_area_struct *vmp)
 {
@@ -934,7 +939,7 @@ void __insert_vm_struct(struct mm_struct *mm, struct vm_area_struct *vmp)
 	*pprev = vmp;
 
 	mm->map_count++;
-	if (mm->map_count >= AVL_MIN_MAP_COUNT && !mm->mmap_avl)
+	if (mm->map_count >= AVL_MIN_MAP_COUNT && !mm->mmap_avl) /* 如果虚存区间树大于AVL_MIN_MAP_COUNT （32) 个，就建立AVL树 */
 		build_mmap_avl(mm);
 
 	file = vmp->vm_file;
@@ -949,7 +954,7 @@ void __insert_vm_struct(struct mm_struct *mm, struct vm_area_struct *vmp)
 		head = &mapping->i_mmap;
 		if (vmp->vm_flags & VM_SHARED)
 			head = &mapping->i_mmap_shared;
-      
+
 		/* insert vmp into inode's share list */
 		if((vmp->vm_next_share = *head) != NULL)
 			(*head)->vm_pprev_share = &vmp->vm_next_share;
@@ -958,10 +963,18 @@ void __insert_vm_struct(struct mm_struct *mm, struct vm_area_struct *vmp)
 	}
 }
 
+/* 用来将新建立的虚存区间插入到mm_struct中的线性队列或AVL树中去 */
 void insert_vm_struct(struct mm_struct *mm, struct vm_area_struct *vmp)
 {
+    /*
+     * 插入操作不允许受到干扰，所以要对插入操作加锁，第一把加在代表新区间的vmp上，第二把加在代表整个虚存空间的mm_struct 的数据结构中，
+     * 使得插入操作过程中不让其他的进程能够在中途插进来.注意一个进程只有一个mm_struct 结构，但是一个mm_struct结构可能会有多个进程使用，比如说：
+     * 当一个进程创建(vfork() 或 clone()）一个子进程时，其子进程就可能与父进程共用一个mm_struct结构
+     */
 	lock_vma_mappings(vmp);
 	spin_lock(&current->mm->page_table_lock);
+
+    /* 可以看到这里实际上调用的是__insert_vmm_struct()函数 */
 	__insert_vm_struct(mm, vmp);
 	spin_unlock(&current->mm->page_table_lock);
 	unlock_vma_mappings(vmp);

@@ -38,18 +38,27 @@ extern struct list_head inactive_dirty_list;
  * space that has a special rule for the page-fault handlers (ie a shared
  * library, the executable area etc).
  */
+/* 虚存区间结构 */
 struct vm_area_struct {
-	struct mm_struct * vm_mm;	/* VM area parameters */
+	struct mm_struct * vm_mm;	/* VM area parameters,mm_struct结构体，在include/linux/sched.h中定义 */
+
+    /* vm_start 与vm_end 定义了一个虚存区间的头和尾，vm_start 包含在区间内，vm_end 不包含在区间里 */
 	unsigned long vm_start;
 	unsigned long vm_end;
 
 	/* linked list of VM areas per task, sorted by address */
+    /* 属于同一个进程的区间头要按虚存地址的高低次序链接在一起，vm_next指针起到链接的作用 */
 	struct vm_area_struct *vm_next;
 
+    /* 同一个区间里的页面应有用样的访问权限和其他一些属性，vm_page_prot ，vm_flags正是用来记录一个区间的这些属性*/
 	pgprot_t vm_page_prot;
 	unsigned long vm_flags;
 
 	/* AVL tree of VM areas per task, sorted by address */
+    /*
+     * 内核中给定一个虚拟地址而要找到其所属的区间是一个频繁的操作，如果区间较多的话，仅靠vm_next进行遍历查找会导致效率降低，
+     * 所以在节点数较多的情况下， 我们可以用AVL树结构，达到快速查找的目地。这里的vm_avl_height,left,right用来定义节点在树中的位置
+     */
 	short vm_avl_height;
 	struct vm_area_struct * vm_avl_left;
 	struct vm_area_struct * vm_avl_right;
@@ -61,7 +70,7 @@ struct vm_area_struct {
 	struct vm_area_struct *vm_next_share;
 	struct vm_area_struct **vm_pprev_share;
 
-	struct vm_operations_struct * vm_ops;
+	struct vm_operations_struct * vm_ops; /* 该结构体定义了一些指针函数,该结构体在本文中定义 */
 	unsigned long vm_pgoff;		/* offset in PAGE_SIZE units, *not* PAGE_CACHE_SIZE */
 	struct file * vm_file;
 	unsigned long vm_raend;
@@ -116,6 +125,8 @@ extern pgprot_t protection_map[16];
  * These are the virtual MM functions - opening of an area, closing and
  * unmapping it (needed to keep files on disk up-to-date etc), pointer
  * to the functions called when a no-page or a wp-page exception occurs.
+ * 定义了一些函数指针，open,close,nopage分别用于虚存区间的打开，关闭，和建立映射
+ * nopage 指示当因（虚存）页面不在内存中而引起的“页面出错"所应调应的函数
  */
 struct vm_operations_struct {
 	void (*open)(struct vm_area_struct * area);

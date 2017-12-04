@@ -199,21 +199,25 @@ struct files_struct {
 
 /* Number of map areas at which the AVL tree is activated. This is arbitrary. */
 #define AVL_MIN_MAP_COUNT	32
-
+/* 内核中，用于这个数据结构（指针）的变量名常常是mm
+ * 每个进程自由一个mm_struct 结构,这是在比vm_area更高层次上的数据结构
+ * 在每个进程的“进程控制块”，即task_struct结构中，有一个指针指向该进程的mm_strucct
+ * mm_struct是进程整个用户空间的抽象
+ */
 struct mm_struct {
-	struct vm_area_struct * mmap;		/* list of VMAs */
-	struct vm_area_struct * mmap_avl;	/* tree of VMAs */
-	struct vm_area_struct * mmap_cache;	/* last find_vma result */
-	pgd_t * pgd;
+	struct vm_area_struct * mmap;		/* list of VMAs，建立虚存区间的单链线性队列*/
+	struct vm_area_struct * mmap_avl;	/* tree of VMAs ,建立虚存区间结构的AVL树*/
+	struct vm_area_struct * mmap_cache;	/* last find_vma result,用来指向最近一次用到的那个虚存区间结构 */
+	pgd_t * pgd; /* 指向该进程的页面目录，每个进程都有其自己的页面目录,当内核调度一个进程进入运行时，就将该指针转换成物理地址,写入控制寄存器CR3 */
 	atomic_t mm_users;			/* How many users with user space? */
-	atomic_t mm_count;			/* How many references to "struct mm_struct" (users count as 1) */
-	int map_count;				/* number of VMAs */
-	struct semaphore mmap_sem;
-	spinlock_t page_table_lock;
+	atomic_t mm_count;			/* How many references to "struct mm_struct" (users count as 1)*/
+	int map_count;				/* number of VMAs ,说明该进程有几个虚存区间结构 */
+	struct semaphore mmap_sem; /* 设置了用于P,V操作的信号量 */
+	spinlock_t page_table_lock; /* 作用类似与P,V操作 */
 
 	struct list_head mmlist;		/* List of all active mm's */
 
-	unsigned long start_code, end_code, start_data, end_data;
+	unsigned long start_code, end_code, start_data, end_data; /* 进程映像中代码段，数据段的起点和终点 */
 	unsigned long start_brk, brk, start_stack;
 	unsigned long arg_start, arg_end, env_start, env_end;
 	unsigned long rss, total_vm, locked_vm;
@@ -327,9 +331,9 @@ struct task_struct {
 	pid_t tgid;
 	/* boolean value for session group leader */
 	int leader;
-	/* 
+	/*
 	 * pointers to (original) parent process, youngest child, younger sibling,
-	 * older sibling, respectively.  (p->father can be replaced with 
+	 * older sibling, respectively.  (p->father can be replaced with
 	 * p->p_pptr->pid)
 	 */
 	struct task_struct *p_opptr, *p_pptr, *p_cptr, *p_ysptr, *p_osptr;
@@ -388,7 +392,7 @@ struct task_struct {
 	int (*notifier)(void *priv);
 	void *notifier_data;
 	sigset_t *notifier_mask;
-	
+
 /* Thread group tracking */
    	u32 parent_exec_id;
    	u32 self_exec_id;
@@ -657,12 +661,12 @@ extern void free_irq(unsigned int, void *);
  * fsuser(). This is done, along with moving fsuser() checks to be
  * last.
  *
- * These will be removed, but in the mean time, when the SECURE_NOROOT 
+ * These will be removed, but in the mean time, when the SECURE_NOROOT
  * flag is set, uids don't grant privilege.
  */
 static inline int suser(void)
 {
-	if (!issecure(SECURE_NOROOT) && current->euid == 0) { 
+	if (!issecure(SECURE_NOROOT) && current->euid == 0) {
 		current->flags |= PF_SUPERPRIV;
 		return 1;
 	}
@@ -679,7 +683,7 @@ static inline int fsuser(void)
 }
 
 /*
- * capable() checks for a particular capability.  
+ * capable() checks for a particular capability.
  * New privilege checks should use this interface, rather than suser() or
  * fsuser(). See include/linux/capability.h for defined capabilities.
  */
@@ -790,7 +794,7 @@ do {									\
 	current->state = TASK_RUNNING;					\
 	remove_wait_queue(&wq, &__wait);				\
 } while (0)
-	
+
 #define wait_event_interruptible(wq, condition)				\
 ({									\
 	int __ret = 0;							\
