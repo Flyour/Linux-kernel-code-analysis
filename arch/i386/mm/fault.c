@@ -163,7 +163,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long error_code)
 		 * pusha) doing post-decrement on the stack and that
 		 * doesn't show up until later..
 		 */
-		if (address + 32 < regs->esp)
+		if (address + 32 < regs->esp) /* 判断是否是正常的堆栈操作引起的 */
 			goto bad_area;
 	}
 	if (expand_stack(vma, address))
@@ -172,6 +172,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long error_code)
  * Ok, we have a good vm_area for this memory access, so
  * we can handle it..
  */
+    /* 在这里的swithch语句，内核根据由中断相应机制传过来的error_code来进一步确定映射失败的原因，并采取相应的对策 */
 good_area:
 	info.si_code = SEGV_ACCERR;
 	write = 0;
@@ -198,6 +199,7 @@ good_area:
 	 * If for any reason at all we couldn't handle the fault,
 	 * make sure we exit gracefully rather than endlessly redo
 	 * the fault.
+     * 调用虚存管理函数 handle_mm_fault()
 	 */
 	switch (handle_mm_fault(mm, vma, address, write)) {
 	case 1:

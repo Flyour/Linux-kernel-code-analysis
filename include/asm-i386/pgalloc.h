@@ -104,7 +104,7 @@ extern inline pte_t * pte_alloc_kernel(pmd_t * pmd, unsigned long address)
 	address = (address >> PAGE_SHIFT) & (PTRS_PER_PTE - 1);
 	if (pmd_none(*pmd)) {
 		pte_t * page = (pte_t *) get_pte_fast();
-		
+
 		if (!page)
 			return get_pte_kernel_slow(pmd, address);
 		set_pmd(pmd, __pmd(_KERNPG_TABLE + __pa(page)));
@@ -119,20 +119,28 @@ extern inline pte_t * pte_alloc_kernel(pmd_t * pmd, unsigned long address)
 
 extern inline pte_t * pte_alloc(pmd_t * pmd, unsigned long address)
 {
-	address = (address >> PAGE_SHIFT) & (PTRS_PER_PTE - 1);
+	address = (address >> PAGE_SHIFT) & (PTRS_PER_PTE - 1); /* 先将给定的地址转换成其所属页面的下标 */
 
-	if (pmd_none(*pmd))
+	if (pmd_none(*pmd)) /* 如果指针pmd所指向的目录项为空，转到getnew处封呢排额一个页面表 */
 		goto getnew;
 	if (pmd_bad(*pmd))
 		goto fix;
 	return (pte_t *)pmd_page(*pmd) + address;
 getnew:
 {
+    /*
+     * 这里调用get_pte_fast()来分配一个页面。内核对页面的分配做了一些优化。当释放一个页面表时，内核将释放的页面表先保存在一个缓冲池里，
+     * 而先不将其物理页释放。只有在缓冲池已满的情况下才真的将物理内存释放。这样，在要分配一个页面表时，就可以先看以下get_pte_fast().要是缓冲池已经空了，
+     * 那就只好通过get_pte_kernel_slow()来进行分配了，这种分配方法有时候可能会比较慢，因为：分配一个物理内存页面用作页面时，可能物理内存已经用完了，
+     * 需要把内存中已经占用的页面交换到磁盘中去
+     */
 	unsigned long page = (unsigned long) get_pte_fast();
-	
 	if (!page)
 		return get_pte_slow(pmd, address);
+
+    /* 分配到一个页面表以后，就通过set_pmd()中将其起始地址连同一些属性标志位一起写入中间目录项，对于i386实际上写入到了pgd中 */
 	set_pmd(pmd, __pmd(_PAGE_TABLE + __pa(page)));
+
 	return (pte_t *)page + address;
 }
 fix:

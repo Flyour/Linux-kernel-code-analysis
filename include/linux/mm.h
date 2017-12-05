@@ -503,16 +503,24 @@ static inline int expand_stack(struct vm_area_struct * vma, unsigned long addres
 {
 	unsigned long grow;
 
-	address &= PAGE_MASK;
-	grow = (vma->vm_start - address) >> PAGE_SHIFT;
+	address &= PAGE_MASK; /* 这里是将地址按页面边界对齐 */
+	grow = (vma->vm_start - address) >> PAGE_SHIFT; /* 计算需要增长几个页面才能把给定的地址包括进去（通常是一个） */
+
+    /*
+     * 每个进程的task_struct 结构中都有个rlim结构数组，规定了对每种资源分配使用的限制，而RLIMIT_STACK就是对用户空间堆栈大小的限制。
+     * 如果扩展以后的区间大小超过了可用于堆栈的资源，或者是动态分配的页面总量超过了可用于该进程的资源限制，
+     * 那就不能扩展了，就会返回一个负的出错代码-ENOMEM,表示没有存储空间可以分配了。当返回-ENOMEM时，在do_page_fault()中也会转向bad_area
+     */
 	if (vma->vm_end - address > current->rlim[RLIMIT_STACK].rlim_cur ||
 	    ((vma->vm_mm->total_vm + grow) << PAGE_SHIFT) > current->rlim[RLIMIT_AS].rlim_cur)
 		return -ENOMEM;
+
 	vma->vm_start = address;
 	vma->vm_pgoff -= grow;
 	vma->vm_mm->total_vm += grow;
 	if (vma->vm_flags & VM_LOCKED)
 		vma->vm_mm->locked_vm += grow;
+    /* 可以看到expand_stack 只是改变了堆栈区的vm_area_struct结构，而并未建立其新扩展的页面对物理内存的映射。这个任务由接下来的good_area完成 */
 	return 0;
 }
 
